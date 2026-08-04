@@ -1,0 +1,12 @@
+# Deliberately empty of runtime libraries.
+#
+# minSdk 16 rules out Compose (21+) and every current AndroidX artifact (21+), so this
+# app draws its own views. That is also the right call for a Metro replica: the whole
+# language is flat rectangles and type, which Canvas does better than any widget set.
+[versions]
+agp = "8.3.0"
+kotlin = "1.9.25"
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

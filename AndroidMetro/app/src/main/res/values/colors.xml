@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- WP8 "cobalt", the out-of-box accent on most hardware. -->
+    <color name="metro_accent">#FF0050EF</color>
+    <color name="metro_background">#FF000000</color>
+</resources>

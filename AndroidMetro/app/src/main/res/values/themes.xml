@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Framework theme only. AppCompat/Material are AndroidX, which minSdk 16 rules
+         out, and a Metro app wants no system chrome anyway. -->
+    <style name="MetroTheme" parent="@android:style/Theme.NoTitleBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowActionBar">false</item>
+    </style>
+</resources>
