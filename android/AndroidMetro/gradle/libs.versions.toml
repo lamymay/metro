@@ -1,11 +1,28 @@
-# Deliberately empty of runtime libraries.
-#
-# minSdk 16 rules out Compose (21+) and every current AndroidX artifact (21+), so this
-# app draws its own views. That is also the right call for a Metro replica: the whole
-# language is flat rectangles and type, which Canvas does better than any widget set.
+# minSdk 21 (Android 5.0 Lollipop) — raised from 16 so the app can use Jetpack Compose
+# and current AndroidX. Android 4.x is no longer worth carrying.
 [versions]
 agp = "8.3.0"
 kotlin = "1.9.25"
+# Must match the Kotlin version exactly; see the Compose/Kotlin compatibility map.
+composeCompiler = "1.5.15"
+composeBom = "2024.06.00"
+activityCompose = "1.9.0"
+coreKtx = "1.13.1"
+lifecycle = "2.8.3"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+
+compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-ui = { group = "androidx.compose.ui", name = "ui" }
+compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+compose-foundation = { group = "androidx.compose.foundation", name = "foundation" }
+compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

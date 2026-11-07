@@ -12,6 +12,11 @@ public struct MetroAppList: View {
 
   @State private var zoomedOut = false
 
+  /// The magnifying-glass icon at the top right and the text field it expands into —
+  /// WP's app bar search: no dedicated search page, the list filters itself in place.
+  @State private var searchActive = false
+  @State private var searchText = ""
+
   public init(entries: [String], onSelect: ((String) -> Void)? = nil) {
     self.entries = entries
     self.onSelect = onSelect
@@ -21,23 +26,74 @@ public struct MetroAppList: View {
   /// did for numerals and CJK.
   private static let letters: [String] = ["#"] + (65...90).map { String(UnicodeScalar($0)!) }
 
+  private var filteredEntries: [String] {
+    guard searchActive, !searchText.isEmpty else { return entries }
+    return entries.filter { $0.localizedCaseInsensitiveContains(searchText) }
+  }
+
   private var grouped: [String: [String]] {
-    Dictionary(grouping: entries) { name in
+    Dictionary(grouping: filteredEntries) { name in
       guard let first = name.uppercased().first, first.isLetter, first.isASCII else { return "#" }
       return String(first)
     }
   }
 
   public var body: some View {
-    ZStack {
-      if zoomedOut {
-        letterGrid
-          .transition(.scale(scale: 1.15).combined(with: .opacity))
-      } else {
-        list
-          .transition(.scale(scale: 0.9).combined(with: .opacity))
+    VStack(spacing: 0) {
+      searchBar
+
+      ZStack {
+        if zoomedOut {
+          letterGrid
+            .transition(.scale(scale: 1.15).combined(with: .opacity))
+        } else {
+          list
+            .transition(.scale(scale: 0.9).combined(with: .opacity))
+        }
       }
     }
+  }
+
+  // MARK: Search
+
+  private var searchBar: some View {
+    HStack(spacing: 10) {
+      if searchActive {
+        MetroIcon(.search, size: 18, color: theme.subtle, weight: 1 / 12)
+          .frame(width: 22, height: 22)
+
+        TextField("", text: $searchText)
+          .metroText(.normal)
+          .autocorrectionDisabled(true)
+          #if os(iOS)
+            .textInputAutocapitalization(.never)
+          #endif
+
+        Spacer(minLength: 0)
+
+        Button {
+          withAnimation(motion.animation(.wpOut, 0.2)) {
+            searchActive = false
+            searchText = ""
+          }
+        } label: {
+          MetroIcon(.close, size: 16, color: theme.subtle, weight: 1 / 12)
+            .frame(width: 22, height: 22)
+        }
+        .buttonStyle(.plain)
+      } else {
+        Spacer(minLength: 0)
+
+        MetroIcon(.search, size: 20, color: theme.foreground, weight: 1 / 12)
+          .frame(width: 36, height: 36)
+          .contentShape(Rectangle())
+          .metroTilt {
+            withAnimation(motion.animation(.wpIn, 0.2)) { searchActive = true }
+          }
+      }
+    }
+    .frame(height: 44)
+    .padding(.horizontal, theme.metrics.pageMargin)
   }
 
   // MARK: List

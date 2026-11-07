@@ -1,8 +1,24 @@
 import SwiftUI
 
-/// Tile footprints, in small-tile units. WP shipped exactly these three.
+/// Tile footprints, in small-tile units — the complete Windows Phone 8.1 set.
+///
+/// These four are the *only* legal footprints. In particular there is no vertical
+/// rectangle: ``wide`` is the one non-square size and it is always horizontal, which
+/// is why a 1×2 or a 2×1 tile is not expressible here. WP 8.0 shipped the first
+/// three; 8.1 added ``large`` for apps that opted into it.
+///
+/// On the default 4-column phone grid ``wide`` and ``large`` both span the full width,
+/// so nothing sits beside them. They only leave room to their right on the 6-column
+/// "Show more Tiles" layout that 720p/1080p phones enable.
 public enum MetroTileSize: String, CaseIterable, Identifiable, Sendable {
-  case small, medium, wide
+  /// 1×1 — a quarter of a medium.
+  case small
+  /// 2×2 — two fit across the default grid.
+  case medium
+  /// 4×2 — the only rectangle, always horizontal. Full width on a 4-column grid.
+  case wide
+  /// 4×4 — twice a medium on each side, so four times its area.
+  case large
 
   public var id: String { rawValue }
 
@@ -11,7 +27,7 @@ public enum MetroTileSize: String, CaseIterable, Identifiable, Sendable {
     switch self {
     case .small: return 1
     case .medium: return 2
-    case .wide: return 4
+    case .wide, .large: return 4
     }
   }
 
@@ -20,6 +36,7 @@ public enum MetroTileSize: String, CaseIterable, Identifiable, Sendable {
     switch self {
     case .small: return 1
     case .medium, .wide: return 2
+    case .large: return 4
     }
   }
 
@@ -27,6 +44,10 @@ public enum MetroTileSize: String, CaseIterable, Identifiable, Sendable {
 
   /// A small tile has no room for a caption — WP dropped it rather than shrinking it.
   public var showsTitle: Bool { self != .small }
+
+  /// Whether the glyph sits against the leading edge rather than centred. WP did this
+  /// on the wide tile only — the square sizes all centre it.
+  public var glyphIsLeading: Bool { self == .wide }
 }
 
 public enum MetroTileStyle: String, CaseIterable, Identifiable, Sendable {

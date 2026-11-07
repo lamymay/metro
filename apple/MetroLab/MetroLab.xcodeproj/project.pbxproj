@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		000000000000000000000012 /* MetroKit in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000011 /* MetroKit */; };
+		000000000000000000000022 /* MetroCalendar in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000021 /* MetroCalendar */; };
+		000000000000000000000032 /* MetroMusic in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000031 /* MetroMusic */; };
+		000000000000000000000042 /* MetroPhotos in Frameworks */ = {isa = PBXBuildFile; productRef = 000000000000000000000041 /* MetroPhotos */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +31,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				000000000000000000000012 /* MetroKit in Frameworks */,
+				000000000000000000000022 /* MetroCalendar in Frameworks */,
+				000000000000000000000032 /* MetroMusic in Frameworks */,
+				000000000000000000000042 /* MetroPhotos in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -71,6 +77,9 @@
 			name = MetroLab;
 			packageProductDependencies = (
 				000000000000000000000011 /* MetroKit */,
+				000000000000000000000021 /* MetroCalendar */,
+				000000000000000000000031 /* MetroMusic */,
+				000000000000000000000041 /* MetroPhotos */,
 			);
 			productName = MetroLab;
 			productReference = 000000000000000000000006 /* MetroLab.app */;
@@ -102,6 +111,9 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				000000000000000000000010 /* XCLocalSwiftPackageReference "../MetroKit" */,
+				000000000000000000000020 /* XCLocalSwiftPackageReference "../MetroCalendar" */,
+				000000000000000000000030 /* XCLocalSwiftPackageReference "../MetroMusic" */,
+				000000000000000000000040 /* XCLocalSwiftPackageReference "../MetroPhotos" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 000000000000000000000004 /* Products */;
@@ -151,7 +163,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
@@ -175,7 +187,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = auto;
@@ -202,7 +214,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Player's own screen can sync your Music library so you can browse and play your real songs.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to toggle the torch from the Action Center — the camera feed itself is never read.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "The Photos hub shows your own camera roll in the Windows Phone layout. Photos are only read and displayed on this device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
@@ -239,7 +253,9 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSAppleMusicUsageDescription = "Player's own screen can sync your Music library so you can browse and play your real songs.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Used only to toggle the torch from the Action Center — the camera feed itself is never read.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "The Photos hub shows your own camera roll in the Windows Phone layout. Photos are only read and displayed on this device.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleLightContent;
@@ -288,12 +304,36 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../MetroKit;
 		};
+		000000000000000000000020 /* XCLocalSwiftPackageReference "../MetroCalendar" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MetroCalendar;
+		};
+		000000000000000000000030 /* XCLocalSwiftPackageReference "../MetroMusic" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MetroMusic;
+		};
+		000000000000000000000040 /* XCLocalSwiftPackageReference "../MetroPhotos" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../MetroPhotos;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		000000000000000000000011 /* MetroKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MetroKit;
+		};
+		000000000000000000000021 /* MetroCalendar */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MetroCalendar;
+		};
+		000000000000000000000031 /* MetroMusic */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MetroMusic;
+		};
+		000000000000000000000041 /* MetroPhotos */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MetroPhotos;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

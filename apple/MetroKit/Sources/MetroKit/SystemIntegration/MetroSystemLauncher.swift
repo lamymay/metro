@@ -2,6 +2,9 @@ import SwiftUI
 
 #if os(iOS)
   import UIKit
+  import AVFoundation
+#elseif os(macOS)
+  import AppKit
 #endif
 
 /// The three system hand-offs a sandboxed app can make honestly: dial the phone,
@@ -21,19 +24,23 @@ public enum MetroSystemLauncher {
   }
 
   /// Opens the default mail client's compose sheet. `mailto:` with no recipient just
-  /// opens a blank draft — genuinely safe, nothing sends itself.
+  /// opens a blank draft — genuinely safe, nothing sends itself. On macOS this hands
+  /// the same `mailto:` URL to `NSWorkspace`, which routes it to whatever app is set
+  /// as the system default (Mail.app unless the user changed it).
   public static func openMailCompose(to: String = "", subject: String = "") {
+    var components = URLComponents()
+    components.scheme = "mailto"
+    components.path = to
+    var query: [String] = []
+    if !subject.isEmpty {
+      query.append("subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")
+    }
+    if !query.isEmpty { components.query = query.joined(separator: "&") }
+    guard let url = components.url else { return }
     #if os(iOS)
-      var components = URLComponents()
-      components.scheme = "mailto"
-      components.path = to
-      var query: [String] = []
-      if !subject.isEmpty {
-        query.append("subject=\(subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")
-      }
-      if !query.isEmpty { components.query = query.joined(separator: "&") }
-      guard let url = components.url else { return }
       UIApplication.shared.open(url)
+    #elseif os(macOS)
+      NSWorkspace.shared.open(url)
     #endif
   }
 
@@ -73,11 +80,67 @@ public enum MetroSystemLauncher {
     #endif
   }
 
-  #if os(iOS)
-    public static var cameraAvailable: Bool {
+  /// Opens the system default music player app (Apple Music, via its stable
+  /// `music://` redirect scheme) — the third of Metro's three music player systems,
+  /// alongside the WP-recreation player and the ``Player`` package's own native UI.
+  public static func openSystemMusicPlayer() {
+    #if os(iOS)
+      guard let url = URL(string: "music://") else { return }
+      UIApplication.shared.open(url)
+    #endif
+  }
+
+  /// Whether the system can present a real camera-capture UI in place. Always false
+  /// off iOS — macOS/iPadOS-as-Mac-Catalyst-less builds have no `UIImagePickerController`
+  /// equivalent here, so callers should treat `false` as "fall back to a placeholder",
+  /// not as an error.
+  ///
+  /// This only reports whether the *hardware* exists — it says nothing about
+  /// permission. `UIImagePickerController` doesn't ask for camera access itself and
+  /// silently shows a blank screen if access was previously denied, so callers must
+  /// go through ``requestCameraAccess(completion:)`` before presenting it.
+  public static var cameraAvailable: Bool {
+    #if os(iOS)
       UIImagePickerController.isSourceTypeAvailable(.camera)
-    }
-  #endif
+    #else
+      false
+    #endif
+  }
+
+  /// Resolves camera permission before a caller presents ``MetroCameraCapture``.
+  /// `.authorized` means it's safe to present now; `.notDetermined` means the system
+  /// prompt was just shown and the completion fires once the person answers it;
+  /// `.denied`/`.restricted` means presenting the picker would just show a blank
+  /// screen, so the caller should route to Settings instead.
+  public enum CameraAccess { case authorized, denied }
+
+  public static func requestCameraAccess(completion: @escaping (CameraAccess) -> Void) {
+    #if os(iOS)
+      switch AVCaptureDevice.authorizationStatus(for: .video) {
+      case .authorized:
+        completion(.authorized)
+      case .notDetermined:
+        AVCaptureDevice.requestAccess(for: .video) { granted in
+          DispatchQueue.main.async { completion(granted ? .authorized : .denied) }
+        }
+      case .denied, .restricted:
+        completion(.denied)
+      @unknown default:
+        completion(.denied)
+      }
+    #else
+      completion(.denied)
+    #endif
+  }
+
+  /// Opens this app's page in the system Settings app — the only way to recover from
+  /// a previously-denied camera prompt, since re-presenting the picker won't ask again.
+  public static func openAppSettings() {
+    #if os(iOS)
+      guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+      UIApplication.shared.open(url)
+    #endif
+  }
 }
 
 #if os(iOS)

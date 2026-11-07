@@ -45,3 +45,28 @@ cd AppleMetro/MetroLab && xcodebuild -scheme MetroLab -sdk iphonesimulator build
 # Android
 cd AndroidMetro && ./gradlew :app:assembleDebug
 ```
+建议以本文为准更新这两篇，或直接标注为历史版本。
+
+Player (existing, from the other app)  ─┐
+├──► MetroMusic  ─┐
+MetroKit  (磁贴 + 主题/动效/图标/控件/导航/Pivot)──┼──► MetroPhotos ─┼──► MetroLab (app)
+= 核心框架 + 主入口                      └──► MetroCalendar┘
+
+
+
+
+意图说明：MetroLab= apple软件的壳子（ 核心框架 + 主入口   ）
+
+平级的模块是：
+1  MetroKit （SPM） (主要UI框架：磁贴 + 主题/动效/图标/控件/导航/Pivot/设置（todo，之前好像写过这个占位功能）)
+2 Player （SPM）已新写完成
+3 MetroMusic（SPM）
+4 MetroPhotos（SPM）
+5 MetroCalendar（SPM） （年月周 的WP风格日历，包含有日程安排记录功能）
+
+
+
+apple 文件夹中的 ‘YearCalendar’ 是抽取出来的SPM 模块吗， apple中的 各个功能 我都SPM来做（仿WP都磁贴功能=SPM模块 也是app的主入口和核心框架 ，player =来自另外app功能页面UI拷贝过来做成的SPM 模块，新实现的仿WP 音乐播放器=新的SPM “音乐”模块，仿WP的相册=SPM “相册”模块
+
+
+

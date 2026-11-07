@@ -80,7 +80,7 @@ class MetroLabActivity : Activity() {
                 this,
                 onBack = { if (!host.pop()) finish() },
                 onStart = { host.replaceAll(LumiaStartPage { id -> handleLumiaTileTap(id) }) },
-                onSearch = { host.push(AppListPage(SampleData.appNames + SampleData.labApps.map { it.first } + listOf("Calendar", "Photos")) { name -> handleAppListSelect(name) }) }
+                onSearch = { host.push(AppListPage(SampleData.appNames + SampleData.labApps.map { it.first } + listOf("Calendar", "音乐", "music", "player", "照片", "photos", "Settings")) { name -> handleAppListSelect(name) }) }
             ),
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
@@ -110,7 +110,7 @@ class MetroLabActivity : Activity() {
             "mail" -> MetroSystemLauncher.openMailCompose(this)
             "camera" -> presentCamera("Camera")
             "settings" -> host.push(MetroSettingsPageFor())
-            "search" -> host.push(AppListPage(SampleData.appNames + SampleData.labApps.map { it.first } + listOf("Calendar", "Photos")) { name -> handleAppListSelect(name) })
+            "search" -> host.push(AppListPage(SampleData.appNames + SampleData.labApps.map { it.first } + listOf("Calendar", "音乐", "music", "player", "照片", "photos", "Settings")) { name -> handleAppListSelect(name) })
             "calendar" -> host.push(MetroCalendarPage())
             "photo-memories" -> host.push(MetroPhotosPage())
             "music" -> openMusicPlayer()
@@ -127,7 +127,12 @@ class MetroLabActivity : Activity() {
             "calendar" -> host.push(MetroCalendarPage())
             "here-drive" -> MetroSystemLauncher.openMaps(this)
             "music" -> openMusicPlayer()
-            "photos" -> MetroSystemLauncher.openPhotos(this)
+            // Matches iOS: the tile opens the WP-recreation hub; the system gallery is
+            // reachable from the app list's separate "photos" entry.
+            "photos" -> host.push(MetroPhotosPage())
+            // TODO(parity): iOS routes this to the Player module's own UI. Android has
+            // no Player equivalent yet — see ANDROID_STATUS.md.
+            "player" -> host.push(DetailPage("Player"))
             "games" -> host.push(DetailPage("Games"))
             "twitter" -> host.push(DetailPage("Twitter"))
             "office" -> host.push(DetailPage("Office"))
@@ -159,9 +164,18 @@ class MetroLabActivity : Activity() {
         }
         when (name) {
             "Calendar" -> host.push(MetroCalendarPage())
-            "Photos" -> host.push(MetroPhotosPage())
+            // Three music entries, named the same way as iOS: the WP recreation, the
+            // system default player, and (once it exists here) the Player module's UI.
+            "音乐", "Music" -> openMusicPlayer()
+            "music" -> MetroSystemLauncher.openSystemMusicPlayer(this)
+            // TODO(parity): no Player module on Android yet — see ANDROID_STATUS.md.
+            "player" -> host.push(DetailPage("Player"))
+            "照片", "Photos" -> host.push(MetroPhotosPage())
+            "photos" -> MetroSystemLauncher.openPhotos(this)
+            "Settings" -> host.push(MetroSettingsPageFor())
             "Phone" -> MetroSystemLauncher.openPhoneDialer(this)
             "Email", "Outlook" -> MetroSystemLauncher.openMailCompose(this)
+            "Message", "Messaging" -> MetroSystemLauncher.openMessaging(this)
             "Camera", "Lumia Camera" -> presentCamera(name)
             else -> host.push(DetailPage(name))
         }

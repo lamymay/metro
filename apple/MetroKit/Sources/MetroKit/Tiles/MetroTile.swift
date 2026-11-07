@@ -197,9 +197,9 @@ struct MetroTileFaceView: View {
         .offset(y: model.size.showsTitle ? -unit * 0.09 : 0)
         .frame(
           maxWidth: .infinity, maxHeight: .infinity,
-          alignment: model.size == .wide ? .leading : .center
+          alignment: model.size.glyphIsLeading ? .leading : .center
         )
-        .padding(.leading, model.size == .wide ? padding * 1.4 : 0)
+        .padding(.leading, model.size.glyphIsLeading ? padding * 1.4 : 0)
 
       if model.size.showsTitle {
         Text(model.title)
@@ -222,9 +222,14 @@ struct MetroTileFaceView: View {
     }
   }
 
-  /// The glyph does not grow with the footprint — a wide tile shows the same icon as a
-  /// medium one, just further left.
+  /// The glyph does not track the footprint one-for-one — a wide tile shows the same
+  /// icon as a medium one, just further left. Large is the exception: at 4×4 a
+  /// medium-sized glyph reads as a mistake, so it scales with the tile.
   private var glyphSize: CGFloat {
-    model.size == .small ? unit * 0.50 : unit * 0.62
+    switch model.size {
+    case .small: return unit * 0.50
+    case .medium, .wide: return unit * 0.62
+    case .large: return unit * 1.15
+    }
   }
 }

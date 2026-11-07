@@ -191,9 +191,17 @@ class TileView(context: Context) : View(context) {
 
     private val padding: Float get() = maxOf(MetroTheme.dp(4f), unit * 0.09f)
 
-    /** The glyph does not grow with the footprint — a wide tile shows the same icon. */
+    /**
+     * The glyph does not track the footprint one-for-one — a wide tile shows the same
+     * icon as a medium one, just further left. Large is the exception: at 4x4 a
+     * medium-sized glyph reads as a mistake, so it scales with the tile.
+     */
     private val glyphSize: Float
-        get() = if (model.size == TileSize.SMALL) unit * 0.50f else unit * 0.62f
+        get() = when (model.size) {
+            TileSize.SMALL -> unit * 0.50f
+            TileSize.MEDIUM, TileSize.WIDE -> unit * 0.62f
+            TileSize.LARGE -> unit * 1.15f
+        }
 
     private fun drawFace(canvas: Canvas, face: TileFace, w: Float, h: Float) {
         val tint = model.foreground
@@ -255,7 +263,7 @@ class TileView(context: Context) : View(context) {
     private fun drawRestingFace(canvas: Canvas, w: Float, h: Float, tint: Int) {
         // WP sat the glyph slightly above centre so the caption did not crowd it, and
         // pushed it to the left edge on a wide tile rather than growing it.
-        val gx = if (model.size == TileSize.WIDE) padding * 1.4f + glyphSize / 2f else w / 2f
+        val gx = if (model.size.glyphIsLeading) padding * 1.4f + glyphSize / 2f else w / 2f
         val gy = if (model.size.showsTitle) h / 2f - unit * 0.09f else h / 2f
         MetroGlyphs.draw(canvas, model.glyph, gx, gy, glyphSize, tint)
 

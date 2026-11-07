@@ -3,9 +3,12 @@ package com.rakukura.metrolab.applist
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -28,15 +31,40 @@ class AppListView(
     context: Context,
     private val entries: List<String>,
     private val onSelect: ((String) -> Unit)? = null
-) : FrameLayout(context) {
+) : LinearLayout(context) {
 
     /** `#` collects everything that does not start with a Latin letter — numerals, CJK. */
     private val letters: List<String> = listOf("#") + ('A'..'Z').map { it.toString() }
 
-    private val grouped: Map<String, List<String>> = entries.groupBy { name ->
-        val first = name.uppercase().firstOrNull()
-        if (first != null && first in 'A'..'Z') first.toString() else "#"
+    /** WP's app bar search: a magnifying glass that expands into a filter field, no
+     * dedicated search screen — the list narrows itself in place. */
+    private var searchText: String = ""
+    private var searchActive = false
+        set(value) {
+            field = value
+            searchIcon.visibility = if (value) GONE else VISIBLE
+            searchField.visibility = if (value) VISIBLE else GONE
+            searchClose.visibility = if (value) VISIBLE else GONE
+            if (value) searchField.requestFocus() else searchField.setText("")
+        }
+
+    private fun currentGrouped(): Map<String, List<String>> {
+        val filtered = if (searchText.isBlank()) entries else entries.filter { it.contains(searchText, ignoreCase = true) }
+        return filtered.groupBy { name ->
+            val first = name.uppercase().firstOrNull()
+            if (first != null && first in 'A'..'Z') first.toString() else "#"
+        }
     }
+
+    private val searchIcon = MetroGlyphView(context, MetroGlyph.SEARCH, MetroTheme.dp(20f), MetroTheme.foreground)
+    private val searchField = EditText(context).apply {
+        setSingleLine(true)
+        setBackgroundColor(android.graphics.Color.TRANSPARENT)
+        setTextColor(MetroTheme.foreground)
+        textSize = MetroTheme.textSize(MetroRole.NORMAL) / resources.displayMetrics.scaledDensity
+        visibility = GONE
+    }
+    private val searchClose = MetroGlyphView(context, MetroGlyph.CLOSE, MetroTheme.dp(16f), MetroTheme.foreground).apply { visibility = GONE }
 
     private val listScroll = ScrollView(context)
     private val listColumn = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
@@ -44,23 +72,60 @@ class AppListView(
     private val headerAnchors = HashMap<String, View>()
 
     init {
+        orientation = LinearLayout.VERTICAL
+
+        val searchBar = LinearLayout(context)
+        searchBar.orientation = LinearLayout.HORIZONTAL
+        searchBar.gravity = Gravity.CENTER_VERTICAL
+        searchBar.setPadding(MetroTheme.pageMargin.toInt(), 0, MetroTheme.pageMargin.toInt(), 0)
+
+        val spacer = View(context)
+        searchBar.addView(spacer, LinearLayout.LayoutParams(0, 1, 1f))
+        searchBar.addView(searchField, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        searchBar.addView(searchIcon, LinearLayout.LayoutParams(MetroTheme.dpInt(36f), MetroTheme.dpInt(36f)))
+        searchBar.addView(searchClose, LinearLayout.LayoutParams(MetroTheme.dpInt(36f), MetroTheme.dpInt(36f)))
+        addView(searchBar, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, MetroTheme.dpInt(44f)))
+
+        TiltController(searchIcon) { searchActive = true }.attach()
+        TiltController(searchClose) { searchActive = false; refresh() }.attach()
+        searchField.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                searchText = s?.toString() ?: ""
+                refresh()
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        val content = FrameLayout(context)
+
         listScroll.isFillViewport = true
         listScroll.addView(
             listColumn,
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
         buildList()
-        addView(listScroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        content.addView(listScroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
 
         gridScroll.visibility = GONE
         gridScroll.addView(
             buildGrid(),
             ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
-        addView(gridScroll, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        content.addView(gridScroll, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+
+        addView(content, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+    }
+
+    /** Rebuilds the list and letter grid against the current search filter. */
+    private fun refresh() {
+        buildList()
+        val grid = (gridScroll.getChildAt(0) as? LetterGrid) ?: return
+        grid.letters = letters.map { it to (currentGrouped()[it]?.isNotEmpty() == true) }
     }
 
     private fun buildList() {
+        val grouped = currentGrouped()
         listColumn.removeAllViews()
         headerAnchors.clear()
         for (letter in letters) {
@@ -161,7 +226,7 @@ class AppListView(
         val grid = LetterGrid(context) { letter ->
             zoomIn(letter)
         }
-        grid.letters = letters.map { it to (grouped[it]?.isNotEmpty() == true) }
+        grid.letters = letters.map { it to (currentGrouped()[it]?.isNotEmpty() == true) }
         return grid
     }
 

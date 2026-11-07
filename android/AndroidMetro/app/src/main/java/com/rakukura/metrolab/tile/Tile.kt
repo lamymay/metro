@@ -4,14 +4,32 @@ import com.rakukura.metrolab.glyph.MetroGlyph
 import com.rakukura.metrolab.theme.MetroAccent
 import com.rakukura.metrolab.theme.MetroTheme
 
-/** Tile footprints, in small-tile units. WP shipped exactly these three. */
+/**
+ * Tile footprints, in small-tile units — the complete Windows Phone 8.1 set.
+ *
+ * These four are the *only* legal footprints. In particular there is no vertical
+ * rectangle: [WIDE] is the one non-square size and it is always horizontal, which is
+ * why a 1x2 or a 2x1 tile is not expressible here. WP 8.0 shipped the first three;
+ * 8.1 added [LARGE] for apps that opted into it.
+ *
+ * On the default 4-column phone grid [WIDE] and [LARGE] both span the full width, so
+ * nothing sits beside them. They only leave room to their right on the 6-column
+ * "Show more Tiles" layout that 720p/1080p phones enable.
+ */
 enum class TileSize(val columns: Int, val rows: Int, val displayName: String) {
-    /** No room for a caption — WP dropped it rather than shrinking it. */
+    /** 1x1 — a quarter of a medium. No room for a caption, so WP drew none. */
     SMALL(1, 1, "Small"),
+    /** 2x2 — two fit across the default grid. */
     MEDIUM(2, 2, "Medium"),
-    WIDE(4, 2, "Wide");
+    /** 4x2 — the only rectangle, always horizontal. Full width on a 4-column grid. */
+    WIDE(4, 2, "Wide"),
+    /** 4x4 — twice a medium on each side, so four times its area. */
+    LARGE(4, 4, "Large");
 
     val showsTitle: Boolean get() = this != SMALL
+
+    /** WP pushed the glyph to the leading edge on the wide tile only. */
+    val glyphIsLeading: Boolean get() = this == WIDE
 }
 
 enum class TileStyle(val displayName: String) {

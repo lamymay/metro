@@ -5,14 +5,29 @@ not a UIKit/SwiftUI skin, but the actual mechanics: the tilt press, the turnstil
 transition, the feathered entrance, the panorama's three-layer parallax, the pivot's
 lagged content, live tiles that flip and slide.
 
+## Modules
+
+Five sibling SPM packages plus the app shell. iOS 17+, macOS 14+.
+
 ```
-MetroKit/     SPM library. iOS 15+, macOS 15+. Everything lives here.
-MetroLab/     Thin Xcode app shell — one file, presents MetroKit's lab UI.
+MetroLab/        Xcode app shell — the main entry (LumiaStartScreen) and the lab screens.
+├── MetroKit/       UI framework: tiles, theme, motion, icons, controls,
+│                   navigation, pivot/panorama, app list, settings. No dependencies.
+├── MetroMusic/     WP-recreation music player.        -> MetroKit, Player
+├── MetroPhotos/    WP-recreation photos hub.          -> MetroKit
+├── MetroCalendar/  WP-recreation year/month calendar. -> MetroKit
+└── Player/         Native player UI ported from the sibling `player` app. -> GRDB
 ```
 
-Open `MetroLab/MetroLab.xcodeproj` in Xcode; it resolves `MetroKit` as a local package
-dependency. `swift test` from `MetroKit/` runs the unit tests (easing curves, the tile
-packer, tilt geometry) without touching a simulator.
+`MetroKit` is the base every feature module builds on; feature modules never depend on
+each other. Anything two of them need (the album-art generator, `MetroDateHelper`)
+lives in `MetroKit` rather than being cross-imported — that rule is what keeps the
+graph a tree.
+
+Open `MetroLab/MetroLab.xcodeproj` in Xcode; it resolves all five as local package
+dependencies. `swift build`/`swift test` works inside any package on its own —
+`MetroKit/` carries the unit tests (easing curves, the tile packer, tilt geometry) and
+runs without touching a simulator.
 
 ## Layout
 
@@ -32,9 +47,12 @@ packer, tilt geometry) without touching a simulator.
 - **Panorama / Pivot** — three-speed parallax; header-leads-content lag.
 - **Controls / AppBar / AppList** — buttons, toggle, slider, text box, the WP app bar
   (icons + overflow menu), and the app list's semantic-zoom letter grid.
-- **Lab** — `MetroLabRoot` is the whole demo app: a start screen whose pinned tiles open
-  motion/type/accent/transition/panorama/pivot pages, all editable live via sliders in
-  the Motion page.
+- **Settings** — the WP settings list, the pull-down Action Center, and the accent/type
+  picker (`MetroAccentLab`) that Settings → theme routes to.
+- **Lab** (in the app shell, not the kit) — `MetroLabRoot` is a developer start screen
+  whose pinned tiles open motion/type/accent/transition/panorama/pivot pages, all
+  editable live via sliders in the Motion page. It lives in `MetroLab/` because it
+  references every feature module; keeping it in `MetroKit` would invert the graph.
 
 ## Known simplifications
 

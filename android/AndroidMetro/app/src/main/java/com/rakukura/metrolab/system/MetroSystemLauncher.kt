@@ -70,4 +70,23 @@ object MetroSystemLauncher {
             if (fallback.resolveActivity(activity.packageManager) != null) activity.startActivity(fallback)
         }
     }
+
+    /**
+     * Opens the device's default music player — the third of Metro's three music
+     * entries, alongside the WP-recreation player and (on iOS) the Player module's UI.
+     *
+     * `CATEGORY_APP_MUSIC` is the Android equivalent of iOS's `music://`: it targets
+     * whichever app the OS considers "the" music app rather than raising a chooser.
+     * It needs the matching `<intent>` in the manifest's `<queries>` block to stay
+     * visible under Android 11+ package filtering.
+     */
+    fun openSystemMusicPlayer(activity: Activity) {
+        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC)
+        if (intent.resolveActivity(activity.packageManager) != null) {
+            activity.startActivity(intent)
+        } else {
+            val fallback = Intent(Intent.ACTION_VIEW, MediaStore.Audio.Media.EXTERNAL_CONTENT_URI)
+            if (fallback.resolveActivity(activity.packageManager) != null) activity.startActivity(fallback)
+        }
+    }
 }

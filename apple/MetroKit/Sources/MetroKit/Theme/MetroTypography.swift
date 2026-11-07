@@ -100,8 +100,10 @@ public enum MetroTextRole: String, CaseIterable, Identifiable, Sendable {
     }
   }
 
-  /// Raw Windows Phone point sizes, in WVGA (480×800, scale 1.0) pixels.
-  var wpSize: CGFloat {
+  /// Raw Windows Phone point sizes, in WVGA (480×800, scale 1.0) pixels. Public so a
+  /// host can show the shipping value a role derives from — the Type Ramp screen
+  /// prints it beside the resolved point size.
+  public var wpSize: CGFloat {
     switch self {
     case .applicationTitle: return 18.667
     // `PhoneTextTitle1Style` was 32; WP apps in practice pushed their page headers a

@@ -1,5 +1,8 @@
 import SwiftUI
 import MetroKit
+import MetroMusic
+import MetroCalendar
+import MetroPhotos
 
 /// The whole app: a dedicated, standalone recreation of a specific Windows Phone 8.1
 /// (Lumia Icon, "Denim", Verizon) start-screen photo, wired into MetroKit's existing
@@ -16,6 +19,7 @@ public struct LumiaStartScreen: View {
   @State private var path: [LumiaRoute] = []
   @State private var actionCenterOpen = false
   @State private var showingCamera = false
+  @State private var showingCameraAccessAlert = false
 
   public init() {}
 
@@ -83,6 +87,12 @@ public struct LumiaStartScreen: View {
         )
         .ignoresSafeArea()
       }
+      .alert("Camera access needed", isPresented: $showingCameraAccessAlert) {
+        Button("Open Settings") { MetroSystemLauncher.openAppSettings() }
+        Button("Cancel", role: .cancel) {}
+      } message: {
+        Text("Turn on camera access for this app in Settings to use it.")
+      }
     #endif
   }
 
@@ -104,6 +114,10 @@ public struct LumiaStartScreen: View {
       MetroSettingsDetailPage(key: key, theme: $theme)
     case .musicPlayer:
       MetroMusicPage(player: musicPlayer)
+    case .player:
+      MetroPlayerHostView(player: musicPlayer)
+    case .photos:
+      MetroPhotosPage()
     case .detail(let name):
       MetroPage(applicationTitle: "metro", title: name.lowercased()) {
         VStack(alignment: .leading, spacing: 0) {
@@ -117,15 +131,21 @@ public struct LumiaStartScreen: View {
     }
   }
 
+  // Metro's three music player systems get three distinctly named entries: "音乐" is
+  // the WP-recreation player, "music" hands off to the platform's own default player
+  // (Music.app on iOS/macOS), and "player" mounts the extracted Player package's UI.
   private var appListEntries: [String] {
-    ["Calendar", "Music", "Photos", "Camera", "Settings", "Games", "Office", "Voicemail", "Twitter"]
+    ["Calendar", "音乐", "music", "player", "照片", "photos", "Camera", "Settings", "Games", "Office", "Voicemail", "Twitter"]
   }
 
   private func handleAppListSelect(_ name: String) {
     switch name {
     case "Calendar": path.append(.calendar)
-    case "Music": path.append(.musicPlayer)
-    case "Photos": MetroSystemLauncher.openPhotos { path.append(.detail("Photos")) }
+    case "音乐": path.append(.musicPlayer)
+    case "music": MetroSystemLauncher.openSystemMusicPlayer()
+    case "player": path.append(.player)
+    case "照片": path.append(.photos)
+    case "photos": MetroSystemLauncher.openPhotos { path.append(.photos) }
     case "Camera": presentCamera()
     case "Settings": path.append(.settings)
     default: path.append(.detail(name))
@@ -151,7 +171,9 @@ public struct LumiaStartScreen: View {
     case "music":
       path.append(.musicPlayer)
     case "photos":
-      MetroSystemLauncher.openPhotos { path.append(.detail("Photos")) }
+      path.append(.photos)
+    case "player":
+      path.append(.player)
     case "games":
       path.append(.detail("Games"))
     case "twitter":
@@ -166,10 +188,15 @@ public struct LumiaStartScreen: View {
   }
 
   private func presentCamera() {
-    if MetroSystemLauncher.cameraAvailable {
-      showingCamera = true
-    } else {
+    guard MetroSystemLauncher.cameraAvailable else {
       path.append(.detail("Camera"))
+      return
+    }
+    MetroSystemLauncher.requestCameraAccess { access in
+      switch access {
+      case .authorized: showingCamera = true
+      case .denied: showingCameraAccessAlert = true
+      }
     }
   }
 
@@ -229,98 +256,125 @@ private enum LumiaRoute: Hashable {
   case settings
   case settingsDetail(String)
   case musicPlayer
+  case player
+  case photos
   case detail(String)
 }
 
 // MARK: - Tile model
 
+/// Footprints come straight from MetroKit's ``MetroTileSize`` rather than being
+/// redefined here — the WP 8.1 rules (four sizes, no vertical rectangle, no label on
+/// a small tile) belong to the design system, not to this one screen.
+extension MetroTileSize {
+  /// Glyph point size for this hand-drawn grid. `MetroTile` derives its own from the
+  /// unit; this screen draws its tiles directly, so it needs absolute values.
+  var lumiaGlyphSize: CGFloat {
+    switch self {
+    case .small: return 22
+    case .medium: return 30
+    case .wide: return 34
+    case .large: return 44
+    }
+  }
+}
+
 private struct LumiaTile: Identifiable {
   var id: String
   var col: Int
   var row: Int
-  var colSpan: Int
-  var rowSpan: Int
+  var size: MetroTileSize
   var color: Color
   var badge: String? = nil
   var caption: String? = nil
   var alignCaption: Alignment = .bottomLeading
   @ViewBuilder var glyph: () -> AnyView
 
+  var colSpan: Int { size.columns }
+  var rowSpan: Int { size.rows }
+
   static let rowCount = 10
 
+  /// Laid out in small-tile units on a 4-column grid, using only the four legal WP
+  /// sizes. The reference photo's proportions are preserved where they were already
+  /// legal (the phone/games/camera mediums, the full-width calendar); the tiles that
+  /// were drawn as vertical rectangles or half-height strips are re-cut into the
+  /// nearest real size rather than kept as shapes WP could not produce.
   static let startScreen: [LumiaTile] = [
+    // Rows 1–2: a medium beside a 2×2 block of four smalls.
     LumiaTile(
-      id: "phone", col: 1, row: 1, colSpan: 2, rowSpan: 2, color: Color(hex: 0xE51400),
+      id: "phone", col: 1, row: 1, size: .medium, color: Color(hex: 0xE51400),
       caption: "Verizon Wireless"
     ) { AnyView(Image(systemName: "phone.fill")) },
 
     LumiaTile(
-      id: "messaging", col: 3, row: 1, colSpan: 1, rowSpan: 1, color: Color(hex: 0x1BA1E2)
+      id: "messaging", col: 3, row: 1, size: .small, color: Color(hex: 0x1BA1E2)
     ) { AnyView(Image(systemName: "message.fill")) },
 
     LumiaTile(
-      id: "mail-small", col: 4, row: 1, colSpan: 1, rowSpan: 1, color: Color(hex: 0xA200FF),
+      id: "mail-small", col: 4, row: 1, size: .small, color: Color(hex: 0xA200FF),
       badge: "15"
     ) { AnyView(Image(systemName: "envelope.fill")) },
 
     LumiaTile(
-      id: "google-mail", col: 3, row: 2, colSpan: 2, rowSpan: 1, color: Color(hex: 0xE51400),
-      badge: "23", caption: "Google Mail"
-    ) { AnyView(Image(systemName: "envelope.fill")) },
+      id: "twitter", col: 3, row: 2, size: .small, color: Color(hex: 0x1BA1E2)
+    ) { AnyView(LumiaBirdGlyph()) },
 
+    // The WP-recreation music player.
     LumiaTile(
-      id: "games", col: 1, row: 3, colSpan: 2, rowSpan: 2, color: Color(hex: 0x60A917)
+      id: "music", col: 4, row: 2, size: .small, color: Color(hex: 0x1BA1E2)
+    ) { AnyView(Image(systemName: "music.note")) },
+
+    // Rows 3–4: two mediums.
+    LumiaTile(
+      id: "games", col: 1, row: 3, size: .medium, color: Color(hex: 0x60A917)
     ) { AnyView(Image(systemName: "gamecontroller.fill")) },
 
     LumiaTile(
-      id: "camera", col: 3, row: 3, colSpan: 1, rowSpan: 2, color: Color(hex: 0x6A00FF),
-      caption: "Nokia Camera", alignCaption: .bottom
+      id: "google-mail", col: 3, row: 3, size: .medium, color: Color(hex: 0xE51400),
+      badge: "23", caption: "Google Mail"
+    ) { AnyView(Image(systemName: "envelope.fill")) },
+
+    // Rows 5–6: a medium beside another 2×2 block of smalls.
+    LumiaTile(
+      id: "camera", col: 1, row: 5, size: .medium, color: Color(hex: 0x6A00FF),
+      caption: "Nokia Camera"
     ) { AnyView(Image(systemName: "camera.fill")) },
 
     LumiaTile(
-      id: "mail-7", col: 4, row: 3, colSpan: 1, rowSpan: 2, color: Color(hex: 0xE51400),
+      id: "mail-7", col: 3, row: 5, size: .small, color: Color(hex: 0xE51400),
       badge: "7"
     ) { AnyView(Image(systemName: "envelope.fill")) },
 
+    // Player's own native UI, sharing its library with the "music" tile.
     LumiaTile(
-      id: "calendar", col: 1, row: 5, colSpan: 3, rowSpan: 2, color: Color(hex: 0xE51400),
+      id: "player", col: 4, row: 5, size: .small, color: Color(hex: 0xA200FF)
+    ) { AnyView(Image(systemName: "waveform")) },
+
+    LumiaTile(
+      id: "photos", col: 3, row: 6, size: .small, color: Color(hex: 0x1F1F1F)
+    ) { AnyView(LumiaPhotoStripGlyph()) },
+
+    LumiaTile(
+      id: "office", col: 4, row: 6, size: .small, color: Color(hex: 0xD24726)
+    ) { AnyView(Image(systemName: "doc.text.fill")) },
+
+    // Rows 7–8: the one wide tile, full width — as in the photo.
+    LumiaTile(
+      id: "calendar", col: 1, row: 7, size: .wide, color: Color(hex: 0xE51400),
       caption: "Calendar"
     ) { AnyView(LumiaCalendarGlyph()) },
 
+    // Rows 9–10: two mediums.
     LumiaTile(
-      id: "twitter", col: 4, row: 5, colSpan: 1, rowSpan: 2, color: Color(hex: 0x1BA1E2),
-      alignCaption: .topTrailing
-    ) { AnyView(LumiaBirdGlyph()) },
-
-    LumiaTile(
-      id: "here-drive", col: 1, row: 7, colSpan: 2, rowSpan: 2, color: Color(hex: 0x1D7DD4),
+      id: "here-drive", col: 1, row: 9, size: .medium, color: Color(hex: 0x1D7DD4),
       caption: "HERE Drive+"
     ) { AnyView(Image(systemName: "location.north.fill")) },
 
-    // The photo's small unlabeled tile here becomes the Music tile — the kit already
-    // ships a full WP-style music player and it needs a way in from the start screen.
     LumiaTile(
-      id: "music", col: 3, row: 7, colSpan: 1, rowSpan: 1, color: Color(hex: 0x1BA1E2)
-    ) { AnyView(Image(systemName: "music.note")) },
-
-    LumiaTile(
-      id: "icon-d", col: 4, row: 7, colSpan: 1, rowSpan: 1, color: Color(hex: 0xA200FF)
-    ) { AnyView(Image(systemName: "photo.fill")) },
-
-    LumiaTile(
-      id: "office", col: 3, row: 8, colSpan: 2, rowSpan: 1, color: Color(hex: 0xD24726),
-      caption: "Office"
-    ) { AnyView(Image(systemName: "doc.text.fill")) },
-
-    LumiaTile(
-      id: "voicemail", col: 1, row: 9, colSpan: 2, rowSpan: 1, color: Color(hex: 0xE51400),
+      id: "voicemail", col: 3, row: 9, size: .medium, color: Color(hex: 0xE51400),
       caption: "Voicemail"
     ) { AnyView(Image(systemName: "voicemail")) },
-
-    LumiaTile(
-      id: "photos", col: 3, row: 9, colSpan: 2, rowSpan: 1, color: Color(hex: 0x1F1F1F),
-      caption: "Photos"
-    ) { AnyView(LumiaPhotoStripGlyph()) },
   ]
 }
 
@@ -330,24 +384,33 @@ private struct LumiaTileView: View {
   let tile: LumiaTile
   var onTap: () -> Void
 
+  /// The three mail tiles get a right-click (macOS) / long-press (iOS) shortcut
+  /// straight to the system default mail client — the same hand-off the tile's own
+  /// tap already does, just reachable the way a Mac user expects to reach it.
+  private var isMailTile: Bool {
+    tile.id == "mail-small" || tile.id == "google-mail" || tile.id == "mail-7"
+  }
+
   var body: some View {
     ZStack(alignment: .topTrailing) {
       tile.color
 
       tile.glyph()
-        .font(.system(size: 28, weight: .light))
+        .font(.system(size: tile.size.lumiaGlyphSize, weight: .light))
         .foregroundColor(.white)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
 
       if let badge = tile.badge {
         Text(badge)
-          .font(.system(size: 26, weight: .light, design: .rounded))
+          .font(.system(size: tile.size == .small ? 18 : 26, weight: .light, design: .rounded))
           .foregroundColor(.white)
-          .padding(.top, 6)
-          .padding(.trailing, 8)
+          .padding(.top, tile.size == .small ? 3 : 6)
+          .padding(.trailing, tile.size == .small ? 5 : 8)
       }
 
-      if let caption = tile.caption {
+      // Small tiles are icon-and-badge only on WP — there is no room for a label and
+      // the system never drew one.
+      if let caption = tile.caption, tile.size.showsTitle {
         Text(caption)
           .font(.system(size: 12, weight: .regular))
           .foregroundColor(.white)
@@ -360,6 +423,21 @@ private struct LumiaTileView: View {
     .clipped()
     .contentShape(Rectangle())
     .onTapGesture(perform: onTap)
+    .modifier(MailTileContextMenu(isEnabled: isMailTile))
+  }
+}
+
+private struct MailTileContextMenu: ViewModifier {
+  let isEnabled: Bool
+
+  func body(content: Content) -> some View {
+    if isEnabled {
+      content.contextMenu {
+        Button("Open in Mail") { MetroSystemLauncher.openMailCompose() }
+      }
+    } else {
+      content
+    }
   }
 }
 

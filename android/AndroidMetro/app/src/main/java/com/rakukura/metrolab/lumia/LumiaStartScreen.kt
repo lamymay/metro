@@ -16,6 +16,7 @@ import com.rakukura.metrolab.glyph.MetroGlyphs
 import com.rakukura.metrolab.nav.MetroPage
 import com.rakukura.metrolab.nav.PageHost
 import com.rakukura.metrolab.theme.MetroTheme
+import com.rakukura.metrolab.tile.TileSize
 
 /**
  * A dedicated, standalone recreation of one specific Windows Phone 8.1 (Lumia Icon,
@@ -30,8 +31,7 @@ private data class LumiaTile(
     val id: String,
     val col: Int,
     val row: Int,
-    val colSpan: Int,
-    val rowSpan: Int,
+    val size: TileSize,
     val color: Int,
     val badge: String? = null,
     val caption: String? = null,
@@ -87,8 +87,8 @@ class LumiaStartScreenView(context: Context) : View(context) {
         for (tile in tiles) {
             val left = margin + (tile.col - 1) * (unit + gap)
             val top = topInset + (tile.row - 1) * (unit + gap)
-            val w = tile.colSpan * unit + (tile.colSpan - 1) * gap
-            val h = tile.rowSpan * unit + (tile.rowSpan - 1) * gap
+            val w = tile.size.columns * unit + (tile.size.columns - 1) * gap
+            val h = tile.size.rows * unit + (tile.size.rows - 1) * gap
             rect.set(left, top, left + w, top + h)
             tileBounds[tile.id] = RectF(rect)
 
@@ -105,7 +105,7 @@ class LumiaStartScreenView(context: Context) : View(context) {
                     badgePaint
                 )
             }
-            tile.caption?.let { text ->
+            tile.caption?.takeIf { tile.size.showsTitle }?.let { text ->
                 val y = if (tile.captionGravity and Gravity.TOP == Gravity.TOP)
                     rect.top + MetroTheme.dp(20f)
                 else
@@ -148,54 +148,70 @@ class LumiaStartScreenView(context: Context) : View(context) {
         MetroGlyphs.draw(canvas, glyph, rect.centerX(), rect.centerY(), size, Color.WHITE)
     }
 
+    /**
+     * Laid out in small-tile units on a 4-column grid, using only the four legal WP
+     * sizes. Mirrors the iOS `LumiaTile.startScreen` placement exactly so the two ports
+     * show the same Start screen. The reference photo's proportions are kept where they
+     * were already legal (the phone/games/camera mediums, the full-width calendar); the
+     * tiles that were drawn as vertical rectangles or half-height strips are re-cut into
+     * the nearest real size rather than kept as shapes WP could not produce.
+     */
     private fun buildTiles(): List<LumiaTile> = listOf(
-        LumiaTile("phone", 1, 1, 2, 2, Color.parseColor("#E51400"), caption = "Verizon Wireless") { c, r ->
+        // Rows 1-2: a medium beside a 2x2 block of four smalls.
+        LumiaTile("phone", 1, 1, TileSize.MEDIUM, Color.parseColor("#E51400"), caption = "Verizon Wireless") { c, r ->
             glyph(c, r, MetroGlyph.PHONE)
         },
-        LumiaTile("messaging", 3, 1, 1, 1, Color.parseColor("#1BA1E2")) { c, r ->
+        LumiaTile("messaging", 3, 1, TileSize.SMALL, Color.parseColor("#1BA1E2")) { c, r ->
             glyph(c, r, MetroGlyph.MESSAGE)
         },
-        LumiaTile("mail-small", 4, 1, 1, 1, Color.parseColor("#A200FF"), badge = "15") { c, r ->
+        LumiaTile("mail-small", 4, 1, TileSize.SMALL, Color.parseColor("#A200FF"), badge = "15") { c, r ->
             glyph(c, r, MetroGlyph.MAIL)
         },
-        LumiaTile("google-mail", 3, 2, 2, 1, Color.parseColor("#E51400"), badge = "23", caption = "Google Mail") { c, r ->
-            glyph(c, r, MetroGlyph.MAIL)
+        LumiaTile("twitter", 3, 2, TileSize.SMALL, Color.parseColor("#1BA1E2")) { c, r ->
+            drawBird(c, r)
         },
-        LumiaTile("games", 1, 3, 2, 2, Color.parseColor("#60A917")) { c, r ->
+        // The WP-recreation music player.
+        LumiaTile("music", 4, 2, TileSize.SMALL, Color.parseColor("#1BA1E2")) { c, r ->
+            glyph(c, r, MetroGlyph.MUSIC)
+        },
+
+        // Rows 3-4: two mediums.
+        LumiaTile("games", 1, 3, TileSize.MEDIUM, Color.parseColor("#60A917")) { c, r ->
             drawGameController(c, r)
         },
-        LumiaTile("camera", 3, 3, 1, 2, Color.parseColor("#6A00FF"), caption = "Nokia Camera") { c, r ->
-            glyph(c, r, MetroGlyph.CAMERA)
-        },
-        LumiaTile("mail-7", 4, 3, 1, 2, Color.parseColor("#E51400"), badge = "7") { c, r ->
+        LumiaTile("google-mail", 3, 3, TileSize.MEDIUM, Color.parseColor("#E51400"), badge = "23", caption = "Google Mail") { c, r ->
             glyph(c, r, MetroGlyph.MAIL)
         },
-        LumiaTile("calendar", 1, 5, 3, 2, Color.parseColor("#E51400"), caption = "Calendar") { c, r ->
+
+        // Rows 5-6: a medium beside another 2x2 block of smalls.
+        LumiaTile("camera", 1, 5, TileSize.MEDIUM, Color.parseColor("#6A00FF"), caption = "Nokia Camera") { c, r ->
+            glyph(c, r, MetroGlyph.CAMERA)
+        },
+        LumiaTile("mail-7", 3, 5, TileSize.SMALL, Color.parseColor("#E51400"), badge = "7") { c, r ->
+            glyph(c, r, MetroGlyph.MAIL)
+        },
+        LumiaTile("player", 4, 5, TileSize.SMALL, Color.parseColor("#A200FF")) { c, r ->
+            drawWaveform(c, r)
+        },
+        LumiaTile("photos", 3, 6, TileSize.SMALL, Color.parseColor("#1F1F1F")) { c, r ->
+            drawPhotoStrip(c, r)
+        },
+        LumiaTile("office", 4, 6, TileSize.SMALL, Color.parseColor("#D24726")) { c, r ->
+            drawDoc(c, r)
+        },
+
+        // Rows 7-8: the one wide tile, full width — as in the photo.
+        LumiaTile("calendar", 1, 7, TileSize.WIDE, Color.parseColor("#E51400"), caption = "Calendar") { c, r ->
             val text = "Mon 14"
             c.drawText(text, r.centerX() - bigTextPaint.measureText(text) / 2f, r.centerY() + MetroTheme.dp(10f), bigTextPaint)
         },
-        LumiaTile("twitter", 4, 5, 1, 2, Color.parseColor("#1BA1E2"), captionGravity = Gravity.TOP or Gravity.END) { c, r ->
-            drawBird(c, r)
-        },
-        LumiaTile("here-drive", 1, 7, 2, 2, Color.parseColor("#1D7DD4"), caption = "HERE Drive+") { c, r ->
+
+        // Rows 9-10: two mediums.
+        LumiaTile("here-drive", 1, 9, TileSize.MEDIUM, Color.parseColor("#1D7DD4"), caption = "HERE Drive+") { c, r ->
             drawCar(c, r)
         },
-        // The photo's small unlabeled tile here becomes the Music tile — the app
-        // already ships a full WP-style music player and it needs a way in.
-        LumiaTile("music", 3, 7, 1, 1, Color.parseColor("#1BA1E2")) { c, r ->
-            glyph(c, r, MetroGlyph.MUSIC)
-        },
-        LumiaTile("icon-d", 4, 7, 1, 1, Color.parseColor("#A200FF")) { c, r ->
-            glyph(c, r, MetroGlyph.PHOTO)
-        },
-        LumiaTile("office", 3, 8, 2, 1, Color.parseColor("#D24726"), caption = "Office") { c, r ->
-            drawDoc(c, r)
-        },
-        LumiaTile("voicemail", 1, 9, 2, 1, Color.parseColor("#E51400"), caption = "Voicemail") { c, r ->
+        LumiaTile("voicemail", 3, 9, TileSize.MEDIUM, Color.parseColor("#E51400"), caption = "Voicemail") { c, r ->
             drawVoicemail(c, r)
-        },
-        LumiaTile("photos", 3, 9, 2, 1, Color.parseColor("#1F1F1F"), caption = "Photos") { c, r ->
-            drawPhotoStrip(c, r)
         }
     )
 
@@ -259,6 +275,22 @@ class LumiaStartScreenView(context: Context) : View(context) {
         canvas.drawCircle(cx - radius * 1.6f, cy, radius, p)
         canvas.drawCircle(cx + radius * 1.6f, cy, radius, p)
         canvas.drawLine(cx - radius * 1.6f, cy + radius, cx + radius * 1.6f, cy + radius, p)
+    }
+
+    /** Player's tile: a five-bar waveform, matching the iOS tile's SF Symbol. */
+    private fun drawWaveform(canvas: Canvas, r: RectF) {
+        val heights = floatArrayOf(0.30f, 0.62f, 1.0f, 0.62f, 0.30f)
+        val barW = r.width() * 0.06f
+        val gap = r.width() * 0.06f
+        val total = heights.size * barW + (heights.size - 1) * gap
+        var x = r.centerX() - total / 2f
+        val maxH = r.height() * 0.42f
+        fillPaint.color = Color.WHITE
+        for (h in heights) {
+            val half = maxH * h / 2f
+            canvas.drawRect(x, r.centerY() - half, x + barW, r.centerY() + half, fillPaint)
+            x += barW + gap
+        }
     }
 
     private fun drawPhotoStrip(canvas: Canvas, r: RectF) {
