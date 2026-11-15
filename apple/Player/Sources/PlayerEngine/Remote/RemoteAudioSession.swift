@@ -101,6 +101,16 @@ public final class RemoteAudioSession: ObservableObject {
     seek(to: min(duration, currentTime + seconds))
   }
 
+  /// 切换到当前队列中的下一首曲目。
+  public func playNext() {
+    _ = playNextTrack(userInitiated: true)
+  }
+
+  /// 播放超过 3 秒时回到当前曲目开头，否则切换到上一首。
+  public func playPrevious() {
+    playPreviousTrack(userInitiated: true)
+  }
+
   public func setPlaybackSpeed(_ speed: Float) {
     playbackSpeed = speed
     engine.setRate(speed)
